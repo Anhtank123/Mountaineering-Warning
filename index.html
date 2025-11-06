@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Cảnh báo khi leo núi – Poster tương tác</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Cabin:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    /* =====================================================
+       THEME & TOKENS
+       ===================================================== */
+    :root{
+      --bg:#0e1b17;           /* night evergreen */
+      --bg-2:#13231d;
+      --bg-3:#10221b;
+      --text:#eef7f2;         /* frost */
+      --muted:#bcd2c6;
+      --line:rgba(255,255,255,.18);
+      --glass:rgba(255,255,255,.06);
+      --accent:#ffd36a;       /* sunrise */
+      --accent-2:#ffebad;
+      --safe:#7cffc0;         /* mint */
+      --amber:#ffb84d;        /* cairn orange */
+      --danger:#ff6a7a;       /* alert pink */
+      --earth:#5a412f;        /* soil */
+      --pine:#1d3b2a;         /* forest */
+      --sky:#58b6ff;          /* day sky */
+      --snow:#ffffff;
+    }
+    [data-theme="day"]{
+      --bg:#eaf4ff;           /* pale day */
+      --bg-2:#f7fbff;
+      --bg-3:#dff1ff;
+      --text:#1b2b26;         /* dark pine */
+      --muted:#4d5b56;
+      --line:rgba(0,0,0,.12);
+      --glass:rgba(255,255,255,.7);
+      --accent:#f7a400;       /* sun */
+      --accent-2:#ffe8a8;
+      --safe:#15b886;
+      --amber:#d97b00;
+      --danger:#d23d56;
+      --earth:#7b5b42;
+      --pine:#1f5a44;
+      --sky:#63a9ff;
+      --snow:#ffffff;
+    }
+
+    /* =====================================================
+       BASE
+       ===================================================== */
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color:var(--text); background:radial-gradient(100% 80% at 20% 0%, var(--bg-3) 0%, rgba(0,0,0,0) 60%),
+                         radial-gradient(80% 80% at 85% 10%, var(--bg-2) 0%, rgba(0,0,0,0) 65%),
+                         var(--bg);
+      letter-spacing:.1px; line-height:1.4; overflow-x:hidden;
+    }
+    .wrap{max-width:980px;margin:0 auto;padding:18mm 12mm;position:relative}
+
+    /* =====================================================
+       HERO / PARALLAX MOUNTAINS
+       ===================================================== */
+    .scene{position:absolute; inset:0; pointer-events:none; overflow:hidden;}
+    .layer{position:absolute; width:160%; left:-30%; bottom:-80px; opacity:.7; filter:drop-shadow(0 6px 18px rgba(0,0,0,.35));}
+    .mountain-1{height:220px; background:linear-gradient(180deg,#274235,#14261f); clip-path:polygon(0% 100%, 12% 65%, 18% 72%, 28% 40%, 36% 55%, 48% 28%, 62% 58%, 76% 38%, 86% 62%, 100% 100%);} 
+    .mountain-2{height:280px; background:linear-gradient(180deg,#325244,#1c3027); clip-path:polygon(0% 100%, 8% 72%, 16% 60%, 24% 68%, 30% 46%, 44% 34%, 56% 58%, 70% 40%, 84% 52%, 100% 100%);} 
+    .mountain-3{height:340px; background:linear-gradient(180deg,#3d5f4e,#1e342b); clip-path:polygon(0% 100%, 6% 76%, 20% 56%, 30% 64%, 42% 44%, 52% 52%, 68% 36%, 82% 48%, 94% 40%, 100% 100%);} 
+
+    .sun, .moon{
+      position:absolute; top:60px; right:100px; width:90px; height:90px; border-radius:50%; z-index:0;
+      box-shadow:0 0 40px 10px var(--accent-2);
+    }
+    .sun{ background:radial-gradient(circle at 30% 30%, #fff7d6 0%, var(--accent) 60%, rgba(0,0,0,0) 63%); }
+    .moon{ background:radial-gradient(circle at 40% 40%, #ffffff 0%, #d7e0ff 45%, rgba(0,0,0,0) 60%);} 
+
+    .cloud{position:absolute; top:120px; left:-20%; width:240px; height:80px; border-radius:40px; background:rgba(255,255,255,.4);
+      filter:blur(0.5px); animation:drift 40s linear infinite;}
+    .cloud::before,.cloud::after{content:""; position:absolute; background:inherit; border-radius:inherit;}
+    .cloud::before{width:160px;height:64px; left:18px; top:-32px}
+    .cloud::after{width:120px;height:56px; left:120px; top:-18px}
+    .cloud.c2{top:170px; animation-duration:55s; opacity:.35}
+    .cloud.c3{top:210px; animation-duration:70s; opacity:.3}
+    @keyframes drift{ from{ transform:translateX(0) } to{ transform:translateX(160%) } }
+
+    /* =====================================================
+       PANEL & HEADER
+       ===================================================== */
+    .panel{
+      position:relative; z-index:2; background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      border:1px solid var(--line); border-radius:22px; box-shadow:0 32px 96px rgba(0,0,0,.45); backdrop-filter:blur(12px);
+      overflow:hidden;
+    }
+    header{padding:16px 20px 12px; display:grid; grid-template-columns:1fr auto; gap:14px; align-items:center}
+    .brand{display:flex; gap:12px; align-items:center}
+    .badge{
+      background:linear-gradient(135deg, #fff6b0 0%, #ffd36a 25%, #fff6b0 50%, #ffd36a 75%, #fff6b0 100%);
+      background-size:300% 300%; animation:shine 6s linear infinite; color:#2a291f; padding:16px 28px; font-weight:900; border-radius:999px;
+      box-shadow:0 24px 50px rgba(255,211,106,.5), inset 0 2px 6px rgba(255,255,255,.6); font-size:30px; letter-spacing:2px; text-transform:uppercase;
+    }
+    @keyframes shine{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+    .seal{border:1px solid var(--line); border-radius:12px; padding:8px 12px; color:var(--muted); font-size:12px;
+      background:linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); font-weight:700}
+
+    h1{font:900 38px 'Cabin',Inter,sans-serif; line-height:1.08; text-wrap:balance; text-shadow:0 2px 4px rgba(0,0,0,.3)}
+    .sub{color:var(--muted); margin-top:4px; font-size:17px; font-weight:600}
+
+    /* Toolbar */
+    .toolbar{padding:8px 20px 12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .btn{appearance:none; border:1px solid var(--line); background:linear-gradient(180deg,var(--glass),rgba(255,255,255,.05));
+      color:var(--text); border-radius:12px; padding:10px 14px; font-weight:700; cursor:pointer; letter-spacing:.3px;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.02); transition:transform .15s ease, box-shadow .2s ease, background .2s}
+    .btn:hover{transform:translateY(-2px); box-shadow:0 10px 22px rgba(0,0,0,.25)}
+    .btn:active{transform:translateY(0)}
+    .btn-ghost{background:transparent}
+    .btn-primary{background:linear-gradient(180deg, rgba(255,211,106,.8), rgba(255,211,106,.55)); color:#2a291f}
+
+    /* =====================================================
+       GRID LAYOUT
+       ===================================================== */
+    .grid{padding:12px 20px 20px; display:grid; gap:16px; grid-template-columns:1fr 1fr}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.04)); border:1px solid var(--line);
+      border-radius:16px; padding:16px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.03); transition:transform .2s ease, box-shadow .2s ease}
+    .card:hover{transform:translateY(-4px); box-shadow:0 12px 32px rgba(0,0,0,.3)}
+    .card h3{margin:0 0 8px; font-size:19px; font-weight:800; letter-spacing:.4px}
+
+    /* =====================================================
+       LEFT COLUMN: QUICK + RISK + CHECKLIST
+       ===================================================== */
+    .quick{display:grid; gap:10px}
+    .pill{display:grid; grid-template-columns:46px 1fr auto; gap:12px; align-items:center; border:1px solid var(--line); border-radius:14px; padding:10px 12px; background:linear-gradient(180deg, var(--glass), rgba(255,255,255,.05));}
+    .ico{width:46px; height:46px; border-radius:12px; display:grid; place-items:center; background:rgba(255,255,255,.1)}
+    .stat{font-weight:900; font-size:18px; color:var(--accent)}
+    .muted{color:var(--muted); font-size:13.5px}
+
+    .risk-grid{display:grid; grid-template-columns:1fr; gap:8px; margin-top:8px}
+    .risk{position:relative; padding:10px; border-radius:12px; border:1px solid var(--line)}
+    .risk.level1{background:linear-gradient(180deg, rgba(124,255,192,.1), rgba(124,255,192,.04))}
+    .risk.level2{background:linear-gradient(180deg, rgba(255,184,77,.12), rgba(255,184,77,.04))}
+    .risk.level3{background:linear-gradient(180deg, rgba(255,106,122,.14), rgba(255,106,122,.04))}
+    .risk header{display:grid; grid-template-columns:auto 1fr auto; gap:8px; align-items:center; padding:0}
+    .badge{padding:2px 8px; border-radius:999px; font-size:11px; font-weight:900; border:1px solid currentColor}
+    .green{color:var(--safe)} .amber{color:var(--amber)} .red{color:var(--danger)}
+
+    .checklist{display:grid; gap:8px; margin-top:8px}
+    .check{display:grid; grid-template-columns:auto 1fr auto; gap:8px; align-items:center; padding:8px 10px; border:1px dashed var(--line); border-radius:10px}
+    .check input{accent-color:var(--accent)}
+    .chip{font-size:11px; border:1px solid var(--line); padding:4px 8px; border-radius:999px; color:var(--muted)}
+
+    /* =====================================================
+       RIGHT COLUMN: ALTITUDE TOOL + ELEVATION + MODAL
+       ===================================================== */
+    .altitude{margin:10px 0 8px; padding:12px; background:rgba(255,255,255,.06); border-radius:12px; border:1px solid var(--line); position:relative}
+
+    .slider-wrap{margin:0 0 6px}
+    .labels{display:flex; justify-content:space-between; font-size:12.5px; color:var(--muted); margin-bottom:6px}
+    .slider{position:relative; height:22px; border-radius:999px; overflow:hidden; background:rgba(0,0,0,.25); box-shadow:inset 0 0 0 1px rgba(0,0,0,.25), 0 8px 20px rgba(0,0,0,.25); cursor:pointer; user-select:none}
+    .zone{position:absolute; top:0; height:100%;}
+    .z-green{left:0; width:28%; background:var(--safe)}
+    .z-yellow{left:28%; width:38%; background:var(--amber)}
+    .z-red{left:66%; right:0; background:var(--danger)}
+
+    .arrow{position:absolute; top:0; left:0; width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-top:9px solid var(--snow); transform:translateX(-50%); transition:left .09s cubic-bezier(.2,.8,.4,1); z-index:5; filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
+    .arrow::after{content:attr(data-alt); position:absolute; bottom:-22px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.6); color:#fff; padding:3px 7px; border-radius:5px; font-size:11px; white-space:nowrap; opacity:0; transition:opacity .2s}
+    .arrow:hover::after{opacity:1}
+
+    .zone-list{margin:10px 0 0; padding-left:20px; font-size:14px}
+    .zone-list li{margin:3px 0}
+
+    .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px}
+    .kpi{background:rgba(0,0,0,.2); border:1px solid var(--line); border-radius:12px; padding:10px}
+    .kpi .v{font:900 18px 'Inter';}
+
+    .qrbox{display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; border:1px solid var(--line); border-radius:14px; padding:12px; background:linear-gradient(180deg, var(--glass), rgba(255,255,255,.05)); margin-top:12px; cursor:pointer}
+    .qr{width:110px; height:110px; background:#fff; border-radius:10px; display:grid; place-items:center; padding:4px}
+    .qr img{width:100%; height:100%; object-fit:contain}
+
+    /* Elevation profile (inline SVG) */
+    .elevation{margin-top:10px; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02))}
+
+    /* =====================================================
+       MODAL & TOOLTIPS
+       ===================================================== */
+    .modal{position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(8px); display:none; align-items:center; justify-content:center; z-index:999; opacity:0; transition:opacity .3s ease}
+    .modal.active{display:flex; opacity:1}
+    .modal-content{background:var(--bg); border:1px solid var(--line); border-radius:20px; padding:24px; max-width:90%; box-shadow:0 32px 80px rgba(0,0,0,.5); transform:scale(.9); transition:transform .3s ease}
+    .modal.active .modal-content{transform:scale(1)}
+    .close{float:right; cursor:pointer; font-size:24px; color:var(--muted)}
+
+    /* =====================================================
+       FOOTER
+       ===================================================== */
+    footer{display:grid; grid-template-columns:1fr auto; gap:10px; align-items:end; padding:0 20px 18px; color:var(--muted); font-size:13px}
+
+    /* =====================================================
+       PRINT
+       ===================================================== */
+    @page{size:A3 portrait; margin:12mm}
+    @media print{
+      body{background:#fff!important}
+      .scene, .toolbar, .qrbox{display:none!important}
+      .panel{box-shadow:none}
+    }
+
+    /* =====================================================
+       RESPONSIVE
+       ===================================================== */
+    @media (max-width:980px){
+      .wrap{padding:14mm 10mm}
+      .badge{font-size:22px; padding:12px 18px}
+      h1{font-size:30px}
+    }
+    @media (max-width:860px){ .grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body data-theme="night">
+  <div class="wrap">
+    <!-- Decorative Parallax Scene (non-essential, can be removed on low-spec) -->
+    <div class="scene" aria-hidden="true">
+      <div class="sun" id="sun"></div>
+      <div class="moon" id="moon" style="display:block"></div>
+      <div class="cloud c1"></div>
+      <div class="cloud c2"></div>
+      <div class="cloud c3"></div>
+      <div class="layer mountain-3" style="animation: par 25s linear infinite"></div>
+      <div class="layer mountain-2" style="animation: par 35s linear infinite"></div>
+      <div class="layer mountain-1" style="animation: par 50s linear infinite"></div>
+    </div>
+
+    <style>
+      @keyframes par{ from{ transform:translateX(0) } to{ transform:translateX(-10%) } }
+    </style>
+
+    <div class="panel" role="region" aria-label="Poster tương tác leo núi">
+      <header>
+        <div class="brand">
+          <div class="badge">MOUNTAIN SAFETY · ALTITUDE</div>
+        </div>
+        <div class="seal">12E · STEM</div>
+      </header>
+
+      <div style="padding:0 20px 0">
+        <h1>CẢNH BÁO KHI LEO NÚI<br><span class="sub">Theo dõi độ cao · Oxy · Triệu chứng say độ cao (AMS/HAPE/HACE)</span></h1>
+      </div>
+
+      <div class="toolbar" aria-label="Thanh công cụ">
+        <button class="btn btn-primary" id="toggleTheme" aria-pressed="false">Chế độ: Đêm 🌙</button>
+        <button class="btn" id="demoFlight">Tự chạy mô phỏng độ cao</button>
+        <button class="btn btn-ghost" id="reset">Đặt lại</button>
+        <span style="color:var(--muted);font-size:13px">Mẹo: Dùng phím ◀ ▶ để dịch chuyển độ cao</span>
+      </div>
+
+      <section class="grid">
+        <!-- LEFT COLUMN -->
+        <article class="card" aria-labelledby="quickTitle">
+          <h3 id="quickTitle">MẸO SINH TỒN NHANH</h3>
+          <div class="quick">
+            <div class="pill">
+              <div class="ico" aria-hidden="true">🏔️</div>
+              <div>
+                <strong>Leo chậm – nghỉ đều</strong>
+                <div class="muted">Không tăng độ cao > <b>500 m/ngày</b>. Quy tắc: "<i>Climb high, sleep low</i>".</div>
+              </div>
+              <div class="stat" id="statGain">+0 m</div>
+            </div>
+            <div class="pill">
+              <div class="ico" aria-hidden="true">💧</div>
+              <div>
+                <strong>Hydrate đúng cách</strong>
+                <div class="muted">Uống <b>250–500 ml/giờ</b>, hạn chế rượu & caffeine.</div>
+              </div>
+              <div class="chip">H2O</div>
+            </div>
+            <div class="pill">
+              <div class="ico" aria-hidden="true">🫁</div>
+              <div>
+                <strong>Thở sâu & bình tĩnh</strong>
+                <div class="muted">Hít 4s – giữ 2s – thở 6s giúp ổn định SpO₂.</div>
+              </div>
+              <div class="chip">Breathwork</div>
+            </div>
+            <div class="pill">
+              <div class="ico" aria-hidden="true">🧭</div>
+              <div>
+                <strong>Quản lý thời tiết</strong>
+                <div class="muted">Mưa – tuyết – gió mạnh: tạm dừng, trú an toàn.</div>
+              </div>
+              <div class="chip">WX</div>
+            </div>
+          </div>
+
+          <h3 style="margin-top:12px">MỨC RỦI RO TRIỆU CHỨNG</h3>
+          <div class="risk-grid">
+            <div class="risk level1">
+              <header>
+                <div class="badge green">Mức 1</div>
+                <strong>Ổn định – Tự xử lý</strong>
+                <small style="color:var(--muted)">Chưa cần báo</small>
+              </header>
+              <ul class="muted" style="margin:6px 0 0 16px">
+                <li>Đau đầu nhẹ, mệt mỏi → nghỉ, uống nước, ăn nhẹ.</li>
+                <li>Mẹo: Paracetamol 500 mg nếu đau đầu kéo dài.</li>
+              </ul>
+            </div>
+            <div class="risk level2">
+              <header>
+                <div class="badge amber">Mức 2</div>
+                <strong>Cảnh báo – Dừng leo</strong>
+                <small style="color:var(--muted)">Theo dõi sát</small>
+              </header>
+              <ul class="muted" style="margin:6px 0 0 16px">
+                <li>Buồn nôn, chóng mặt, nhịp tim nhanh → <b>dừng leo</b>, thở sâu, tăng ấm.</li>
+                <li>Xem xét <i>acetazolamide</i> (nếu có chỉ định).</li>
+              </ul>
+            </div>
+            <div class="risk level3">
+              <header>
+                <div class="badge red">Mức 3</div>
+                <strong>Nguy hiểm – Xuống thấp ngay</strong>
+                <small style="color:var(--muted)">Báo cứu hộ</small>
+              </header>
+              <ul class="muted" style="margin:6px 0 0 16px">
+                <li>Khó thở khi nghỉ, ho bọt hồng (HAPE), lú lẫn/đi loạng choạng (HACE).</li>
+                <li><b>Xuống thấp ≥ 500 m</b> càng sớm càng tốt, oxy bổ sung nếu có.</li>
+              </ul>
+            </div>
+          </div>
+
+          <h3 style="margin-top:12px">CHECKLIST TRƯỚC KHI LEO</h3>
+          <div class="checklist" role="list">
+            <label class="check"><input type="checkbox"/> <span>Bảo hộ: giày trekking, gậy, áo mưa, mũ len</span> <span class="chip">Gear</span></label>
+            <label class="check"><input type="checkbox"/> <span>Nước, muối điện giải, snack năng lượng</span> <span class="chip">Fuel</span></label>
+            <label class="check"><input type="checkbox"/> <span>Bộ sơ cứu: băng, thuốc đau đầu, bọc nhiệt</span> <span class="chip">Med</span></label>
+            <label class="check"><input type="checkbox"/> <span>Thông báo lộ trình cho người thân/đội nhóm</span> <span class="chip">Plan</span></label>
+          </div>
+        </article>
+
+        <!-- RIGHT COLUMN -->
+        <article class="card" aria-labelledby="altTitle">
+          <h3 id="altTitle">ĐỘ CAO · OXY · CẢNH BÁO</h3>
+          <div class="altitude" id="altitudeBox">
+            <div class="slider-wrap">
+              <div class="labels"><span>0 m</span><span id="altMid">4.424 m</span><span>8.848 m</span></div>
+              <div class="slider" id="slider" role="slider" aria-valuemin="0" aria-valuemax="8848" aria-valuenow="0" tabindex="0">
+                <div class="zone z-green" aria-hidden="true"></div>
+                <div class="zone z-yellow" aria-hidden="true"></div>
+                <div class="zone z-red" aria-hidden="true"></div>
+                <div class="arrow" id="arrow" data-alt="0 m"></div>
+              </div>
+            </div>
+            <div id="status" class="muted" style="font-size:14px">Áp suất: <strong id="pVal">101.3</strong> kPa · Oxy tương đối: <strong id="oVal">100</strong>% · Nguy cơ: <strong id="riskVal">Thấp</strong></div>
+
+            <div class="stats" aria-label="Thông số nhanh">
+              <div class="kpi"><div class="muted">Độ cao hiện tại</div><div class="v" id="altVal">0 m</div></div>
+              <div class="kpi"><div class="muted">Tăng/giảm hôm nay</div><div class="v" id="gainVal">0 m</div></div>
+              <div class="kpi"><div class="muted">Trạng thái</div><div class="v" id="stateVal">Ổn định</div></div>
+            </div>
+
+            <ul class="zone-list">
+              <li id="zGreen" style="color:var(--safe)"><strong>Vùng xanh</strong>: thích nghi tốt · nghỉ ngắn · uống đủ nước.</li>
+              <li id="zYellow" style="color:var(--amber)"><strong>Vùng vàng</strong>: tiến chậm · ngủ thấp hơn điểm leo.</li>
+              <li id="zRed" style="color:var(--danger)"><strong>Vùng đỏ</strong>: nguy cơ sốc độ cao · xuống thấp ngay nếu triệu chứng nặng.</li>
+            </ul>
+
+            <div class="qrbox" id="openModal" role="button" aria-label="Mở hướng dẫn say độ cao">
+              <div>
+                <strong>Quét QR để xem hướng dẫn xử lý say độ cao</strong>
+                <div class="muted">Video VI/EN · Sơ cứu AMS/HAPE/HACE</div>
+              </div>
+              <div class="qr">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://www.youtube.com/watch?v=QwZT7T-TXT0" alt="QR hướng dẫn say độ cao"/>
+              </div>
+            </div>
+
+            <!-- Elevation profile (decorative) -->
+            <div class="elevation" aria-hidden="true">
+              <svg viewBox="0 0 800 140" width="100%" height="120" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="grad" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="var(--accent)" stop-opacity=".8"/>
+                    <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M0 110 L80 90 L140 96 L190 72 L250 86 L310 58 L380 92 L450 70 L520 84 L590 52 L660 60 L740 42 L800 50 L800 140 L0 140 Z" fill="url(#grad)"/>
+                <polyline points="0,110 80,90 140,96 190,72 250,86 310,58 380,92 450,70 520,84 590,52 660,60 740,42 800,50" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <footer>
+        <div>© 2025 · Mountain Safety Poster · 12E – STEM – KTHS.</div>
+        <div>Thiết kế bởi nhóm STEM Vật Lý · Phiên bản tương tác</div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Modal QR -->
+  <div class="modal" id="qrModal" aria-modal="true" role="dialog" aria-label="Hướng dẫn say độ cao">
+    <div class="modal-content">
+      <span class="close" id="closeModal">×</span>
+      <h3>Hướng dẫn chi tiết xử lý say độ cao</h3>
+      <ol style="margin:8px 0 0 18px">
+        <li><strong>Dừng leo</strong> và <strong>nghỉ</strong> ngay khi có triệu chứng.</li>
+        <li>Uống nước ấm, giữ cơ thể <strong>ấm</strong>, thở sâu – chậm.</li>
+        <li>Nếu nặng: <strong>xuống thấp ≥ 500 m</strong>, sử dụng oxy/bóng túi nếu có.</li>
+      </ol>
+      <p style="margin-top:14px" class="muted">Video hướng dẫn (YouTube): <a href="https://www.youtube.com/watch?v=QwZT7T-TXT0" target="_blank" style="color:var(--accent)">Xem ngay →</a></p>
+    </div>
+  </div>
+
+<script>
+  // ================================
+  // Utilities
+  // ================================
+  const $ = (s,root=document)=>root.querySelector(s);
+  const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
+
+  // Elements
+  const slider = $('#slider');
+  const arrow = $('#arrow');
+  const altVal = $('#altVal');
+  const gainVal = $('#gainVal');
+  const stateVal = $('#stateVal');
+  const pVal = $('#pVal');
+  const oVal = $('#oVal');
+  const riskVal = $('#riskVal');
+  const statGain = $('#statGain');
+  const toggleTheme = $('#toggleTheme');
+  const demoFlightBtn = $('#demoFlight');
+  const resetBtn = $('#reset');
+  const openModalBtn = $('#openModal');
+  const modal = $('#qrModal');
+  const closeModalBtn = $('#closeModal');
+  const sun = $('#sun');
+  const moon = $('#moon');
+
+  // Model
+  const MAX_ALT = 8848; // Everest
+  let currentAlt = 0;
+  let targetAlt = 0;
+  let startAltToday = 0;
+  let isDragging = false;
+  let demoRAF = null;
+  let smoothAlt = 0;
+
+  // FPS limiter variables
+  let lastFrame = performance.now();
+  const FRAME_INTERVAL = 1000 / 120; // 120 fps max
+
+  // ================================
+  // Helpers
+  // ================================
+  function calcPressure(h){
+    const p = 101.325 * Math.pow(1 - 2.25577e-5*h, 5.2559);
+    return Math.max(30, Math.min(101.3, p)).toFixed(1);
+  }
+  function calcOxygen(h){
+    return Math.max(35, Math.min(100, 100 - Math.round(h/95)));
+  }
+  function riskFromAlt(h){
+    if (h < 2500) return {label:'Thấp', color:'var(--safe)', state:'Ổn định'};
+    if (h < 4500) return {label:'Vừa', color:'var(--amber)', state:'Cảnh báo'};
+    return {label:'Cao', color:'var(--danger)', state:'Nguy hiểm'};
+  }
+
+  // ================================
+  // UI update
+  // ================================
+  function updateUIByAlt(h){
+    const percent = h / MAX_ALT;
+    arrow.style.left = (percent*100) + '%';
+    arrow.setAttribute('data-alt', Math.round(h) + ' m');
+    slider.setAttribute('aria-valuenow', Math.round(h));
+
+    altVal.textContent = Math.round(h) + ' m';
+    const gain = Math.max(0, Math.round(h - startAltToday));
+    gainVal.textContent = gain + ' m';
+    statGain.textContent = (gain >= 0 ? '+' : '') + gain + ' m';
+
+    pVal.textContent = calcPressure(h);
+    oVal.textContent = calcOxygen(h);
+
+    const rk = riskFromAlt(h);
+    riskVal.textContent = rk.label;
+    riskVal.style.color = rk.color;
+    stateVal.textContent = rk.state;
+
+    $('#zGreen').style.opacity = h<2500?1:.6;
+    $('#zYellow').style.opacity = h>=2500&&h<4500?1:.6;
+    $('#zRed').style.opacity = h>=4500?1:.6;
+  }
+
+  // ================================
+  // Smoothing + Animation Frame
+  // ================================
+  function renderLoop(now){
+    const dt = now - lastFrame;
+    if(dt >= FRAME_INTERVAL){
+      lastFrame = now;
+      if(!isDragging){
+        // Smooth follow
+        smoothAlt += (targetAlt - smoothAlt) * 0.25;
+        currentAlt = smoothAlt;
+      } else {
+        currentAlt = targetAlt;
+        smoothAlt = targetAlt;
+      }
+      updateUIByAlt(currentAlt);
+    }
+    requestAnimationFrame(renderLoop);
+  }
+  requestAnimationFrame(renderLoop);
+
+  // ================================
+  // Slider interactions
+  // ================================
+  function posToAlt(clientX){
+    const rect = slider.getBoundingClientRect();
+    let p = (clientX - rect.left)/rect.width; p = Math.max(0, Math.min(1, p));
+    return p*MAX_ALT;
+  }
+
+  function onPointerDown(e){
+    isDragging = true;
+    const x = e.touches? e.touches[0].clientX : e.clientX;
+    targetAlt = posToAlt(x);
+  }
+  function onPointerMove(e){
+    if(!isDragging) return;
+    const x = e.touches? e.touches[0].clientX : e.clientX;
+    targetAlt = posToAlt(x);
+    e.preventDefault();
+  }
+  function onPointerUp(){ isDragging = false; }
+
+  slider.addEventListener('mousedown', onPointerDown);
+  document.addEventListener('mousemove', onPointerMove);
+  document.addEventListener('mouseup', onPointerUp);
+
+  slider.addEventListener('touchstart', onPointerDown, {passive:false});
+  document.addEventListener('touchmove', onPointerMove, {passive:false});
+  document.addEventListener('touchend', onPointerUp);
+
+  slider.addEventListener('click', (e)=>{
+    if(!isDragging) {
+      targetAlt = posToAlt(e.clientX);
+    }
+  });
+
+  // Keyboard support
+  slider.addEventListener('keydown', (e)=>{
+    const step = (e.shiftKey? 200 : 50);
+    if(e.key === 'ArrowRight'){ targetAlt = Math.min(MAX_ALT, targetAlt + step); }
+    if(e.key === 'ArrowLeft'){ targetAlt = Math.max(0, targetAlt - step); }
+  });
+
+  // ================================
+  // Demo Flight (auto animation up/down)
+  // ================================
+  function startDemo(){
+    stopDemo();
+    const T = 26000;
+    const t0 = performance.now();
+    (function loop(now){
+      const t = (now - t0) % T;
+      const prog = t/T;
+      const tri = prog < .5 ? prog*2 : (1 - (prog - .5)*2);
+      targetAlt = tri * MAX_ALT;
+      demoRAF = requestAnimationFrame(loop);
+    })(performance.now());
+    demoFlightBtn.textContent = 'Dừng mô phỏng';
+    demoFlightBtn.dataset.running = '1';
+  }
+  function stopDemo(){
+    if(demoRAF) cancelAnimationFrame(demoRAF);
+    demoRAF = null;
+    demoFlightBtn.textContent='Tự chạy mô phỏng độ cao';
+    demoFlightBtn.dataset.running='0';
+  }
+
+  demoFlightBtn.addEventListener('click', ()=>{
+    demoFlightBtn.dataset.running==='1'? stopDemo(): startDemo();
+  });
+
+  // Reset
+  resetBtn.addEventListener('click', ()=>{
+    stopDemo();
+    targetAlt=0; smoothAlt=0; startAltToday = 0;
+    updateUIByAlt(0);
+  });
+
+  // ================================
+  // Theme toggle
+  // ================================
+  function setTheme(mode){
+    document.body.setAttribute('data-theme', mode==='day'?'day':'night');
+    const isDay = mode==='day';
+    sun.style.display = isDay ? 'block':'none';
+    moon.style.display = isDay ? 'none':'block';
+    toggleTheme.textContent = isDay ? 'Chế độ: Ngày ☀️' : 'Chế độ: Đêm 🌙';
+    toggleTheme.setAttribute('aria-pressed', String(isDay));
+  }
+  let theme = 'night';
+  toggleTheme.addEventListener('click', ()=>{
+    theme = theme==='night'?'day':'night';
+    setTheme(theme);
+  });
+
+  // ================================
+  // Modal (QR)
+  // ================================
+  openModalBtn.addEventListener('click', ()=> modal.classList.add('active'));
+  closeModalBtn.addEventListener('click', ()=> modal.classList.remove('active'));
+  window.addEventListener('click', (e)=>{ if(e.target===modal) modal.classList.remove('active') });
+
+  // ================================
+  // Keyboard toggle demo
+  // ================================
+  slider.addEventListener('keyup', (e)=>{
+    if(e.code==='Space' || e.code==='Enter') demoFlightBtn.click();
+  });
+
+  // ================================
+  // Start initial
+  // ================================
+  updateUIByAlt(0);
+  setTheme('night');
+</script>
+
+</body>
+</html>
