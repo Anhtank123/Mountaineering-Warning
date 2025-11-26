@@ -276,89 +276,117 @@
 
 <script>
   // ===== Utilities
-  function $(s, root){ return (root || document).querySelector(s); }
-
+  const $ = (s,root=document)=>root.querySelector(s);
   // Elements
-  var slider = $('#slider'), arrow = $('#arrow');
-  var altVal = $('#altVal'), stateVal = $('#stateVal');
-  var pVal = $('#pVal'), oVal = $('#oVal'), riskVal = $('#riskVal');
-  var statGain = $('#statGain');
-  var toggleTheme = $('#toggleTheme'), demoFlightBtn = $('#demoFlight'), resetBtn = $('#reset');
-  var openModalBtn = $('#openModal'), modal = $('#qrModal'), closeModalBtn = $('#closeModal');
-  var sun = $('#sun'), moon = $('#moon');
-  var zGreenBar = document.querySelector('.z-green'), zYellowBar = document.querySelector('.z-yellow'), zRedBar = document.querySelector('.z-red');
-  var zGreenText = $('#zGreen'), zYellowText = $('#zYellow'), zRedText = $('#zRed');
-  var stateBox = $('#stateBox');
-
-  // GPS
-  var gpsStatus = $('#gpsStatus');
-  var enableGPSBtn = $('#enableGPS');
-  var gpsWatchId = null;
+  const slider = $('#slider'), arrow = $('#arrow');
+  const altVal = $('#altVal'), stateVal = $('#stateVal');
+  const pVal = $('#pVal'), oVal = $('#oVal'), riskVal = $('#riskVal');
+  const statGain = $('#statGain');
+  const toggleTheme = $('#toggleTheme'), demoFlightBtn = $('#demoFlight'), resetBtn = $('#reset');
+  const openModalBtn = $('#openModal'), modal = $('#qrModal'), closeModalBtn = $('#closeModal');
+  const sun = $('#sun'), moon = $('#moon');
+  const zGreenBar = document.querySelector('.z-green'), zYellowBar = document.querySelector('.z-yellow'), zRedBar = document.querySelector('.z-red');
+  const zGreenText = $('#zGreen'), zYellowText = $('#zYellow'), zRedText = $('#zRed');
+  const stateBox = $('#stateBox');
+  const gpsStatus = document.getElementById('gpsStatus');
+  let gpsWatchId = null;
 
   // ===== Model & zones
-  var MAX_ALT = 8848;
-  var GREEN_END = 0.28 * MAX_ALT;
-  var YELLOW_END = 0.66 * MAX_ALT;
-  var targetAlt = 0, smoothAlt = 0, isDragging = false, demoRAF = null;
-  var startAltToday = 0;
+  const MAX_ALT = 8848;
+  const GREEN_END = 0.28 * MAX_ALT;     // ~2480 m
+  const YELLOW_END = 0.66 * MAX_ALT;    // ~5840 m
+  let targetAlt = 0, smoothAlt = 0, isDragging = false, demoRAF = null;
+  let startAltToday = 0;
 
   // FPS cap
-  var lastFrame = performance.now();
-  var FRAME_INTERVAL = 1000/120;
+  let lastFrame = performance.now();
+  const FRAME_INTERVAL = 1000/120;
 
   // ===== Helpers
   function calcPressure(h){
-    var p = 101.325*Math.pow(1-2.25577e-5*h,5.2559);
+    const p = 101.325*Math.pow(1-2.25577e-5*h,5.2559);
     return Math.max(30,Math.min(101.3,p)).toFixed(1);
   }
-  function calcOxygen(h){ return Math.max(35,Math.min(100,100-Math.round(h/95))); }
-  function zoneOf(h){ if(h<=GREEN_END) return 'green'; if(h<=YELLOW_END) return 'yellow'; return 'red'; }
+  function calcOxygen(h){
+    return Math.max(35,Math.min(100,100-Math.round(h/95)));
+  }
+  function zoneOf(h){
+    if(h<=GREEN_END) return 'green';
+    if(h<=YELLOW_END) return 'yellow';
+    return 'red';
+  }
   function pulse(color){
-    stateBox.classList.remove('pulse-green','pulse-amber','pulse-red');
-    void stateBox.offsetWidth;
-    stateBox.classList.add(color==='green'?'pulse-green':color==='yellow'?'pulse-amber':'pulse-red');
+    stateBox.classList.remove('pulse-green','pulse-amber','pulse-red'); void stateBox.offsetWidth;
+    stateBox.classList.add(
+      color==='green' ? 'pulse-green' :
+      color==='yellow' ? 'pulse-amber' :
+      'pulse-red'
+    );
   }
   function highlightZone(h){
-    [zGreenBar,zYellowBar,zRedBar].forEach(function(e){ e.classList.remove('active'); });
-    [zGreenText,zYellowText,zRedText].forEach(function(e){ e.classList.remove('active'); });
+    [zGreenBar,zYellowBar,zRedBar].forEach(e=>e.classList.remove('active'));
+    [zGreenText,zYellowText,zRedText].forEach(e=>e.classList.remove('active'));
     stateBox.classList.remove('green','amber','red');
-    var z = zoneOf(h);
+
+    const z = zoneOf(h);
     if(z==='green'){
-      zGreenBar.classList.add('active'); zGreenText.classList.add('active'); stateBox.classList.add('green'); stateVal.style.color='var(--safe)';
+      zGreenBar.classList.add('active');
+      zGreenText.classList.add('active');
+      stateBox.classList.add('green');
+      stateVal.style.color='var(--safe)';
     } else if(z==='yellow'){
-      zYellowBar.classList.add('active'); zYellowText.classList.add('active'); stateBox.classList.add('amber'); stateVal.style.color='var(--amber)';
-    } else{
-      zRedBar.classList.add('active'); zRedText.classList.add('active'); stateBox.classList.add('red'); stateVal.style.color='var(--danger)';
+      zYellowBar.classList.add('active');
+      zYellowText.classList.add('active');
+      stateBox.classList.add('amber');
+      stateVal.style.color='var(--amber)';
+    } else {
+      zRedBar.classList.add('active');
+      zRedText.classList.add('active');
+      stateBox.classList.add('red');
+      stateVal.style.color='var(--danger)';
     }
   }
 
   // ===== UI update
-  var lastZone = 'green';
+  let lastZone = 'green';
   function updateUIByAlt(h){
-    var percent = h / MAX_ALT;
+    const percent = h / MAX_ALT;
     arrow.style.left = (percent*100)+'%';
     arrow.setAttribute('data-alt', Math.round(h)+' m');
     slider.setAttribute('aria-valuenow', Math.round(h));
     altVal.textContent = Math.round(h)+' m';
 
-    var gain = Math.round(h - startAltToday);
+    const gain = Math.round(h - startAltToday);
     statGain.textContent = (gain>=0?'+':'') + gain + ' m';
 
     pVal.textContent = calcPressure(h);
     oVal.textContent = calcOxygen(h);
 
-    var z = zoneOf(h);
-    if(z==='green'){ riskVal.textContent='Thấp'; riskVal.style.color='var(--safe)'; stateVal.textContent='Ổn định'; }
-    else if(z==='yellow'){ riskVal.textContent='Vừa'; riskVal.style.color='var(--amber)'; stateVal.textContent='Cảnh báo'; }
-    else{ riskVal.textContent='Cao'; riskVal.style.color='var(--danger)'; stateVal.textContent='Nguy hiểm'; }
+    const z = zoneOf(h);
+    if(z==='green'){
+      riskVal.textContent='Thấp';
+      riskVal.style.color='var(--safe)';
+      stateVal.textContent='Ổn định';
+    } else if(z==='yellow'){
+      riskVal.textContent='Vừa';
+      riskVal.style.color='var(--amber)';
+      stateVal.textContent='Cảnh báo';
+    } else {
+      riskVal.textContent='Cao';
+      riskVal.style.color='var(--danger)';
+      stateVal.textContent='Nguy hiểm';
+    }
 
-    if(z!==lastZone){ pulse(z); lastZone=z; }
+    if(z!==lastZone){
+      pulse(z);
+      lastZone = z;
+    }
     highlightZone(h);
   }
 
   // ===== Render loop
   function renderLoop(now){
-    var dt = now - lastFrame;
+    const dt = now - lastFrame;
     if(dt >= FRAME_INTERVAL){
       lastFrame = now;
       smoothAlt += (targetAlt - smoothAlt) * 0.25;
@@ -370,19 +398,20 @@
 
   // ===== Slider interactions
   function posToAlt(clientX){
-    var rect = slider.getBoundingClientRect();
-    var p = (clientX - rect.left)/rect.width; p = Math.max(0,Math.min(1,p));
+    const rect = slider.getBoundingClientRect();
+    let p = (clientX - rect.left)/rect.width;
+    p = Math.max(0,Math.min(1,p));
     return p*MAX_ALT;
   }
   function onPointerDown(e){
-    isDragging=true;
-    var x=e.touches?e.touches[0].clientX:e.clientX;
-    targetAlt=posToAlt(x);
+    isDragging = true;
+    const x = e.touches?e.touches[0].clientX:e.clientX;
+    targetAlt = posToAlt(x);
   }
   function onPointerMove(e){
     if(!isDragging) return;
-    var x=e.touches?e.touches[0].clientX:e.clientX;
-    targetAlt=posToAlt(x);
+    const x = e.touches?e.touches[0].clientX:e.clientX;
+    targetAlt = posToAlt(x);
     e.preventDefault();
   }
   function onPointerUp(){ isDragging=false; }
@@ -393,12 +422,9 @@
   slider.addEventListener('touchstart', onPointerDown, {passive:false});
   document.addEventListener('touchmove', onPointerMove, {passive:false});
   document.addEventListener('touchend', onPointerUp);
-
-  slider.addEventListener('click', function(e){
-    if(!isDragging) targetAlt = posToAlt(e.clientX);
-  });
-  slider.addEventListener('keydown', function(e){
-    var step = (e.shiftKey?200:50);
+  slider.addEventListener('click', e=>{ if(!isDragging) targetAlt = posToAlt(e.clientX); });
+  slider.addEventListener('keydown', e=>{
+    const step = (e.shiftKey?200:50);
     if(e.key==='ArrowRight') targetAlt = Math.min(MAX_ALT, targetAlt+step);
     if(e.key==='ArrowLeft')  targetAlt = Math.max(0, targetAlt-step);
   });
@@ -406,121 +432,105 @@
   // ===== Demo flight
   function startDemo(){
     stopDemo();
-    var T = 26000, t0 = performance.now();
+    const T = 26000, t0 = performance.now();
     (function loop(now){
-      var t=(now-t0)%T, prog=t/T, tri=prog<.5?prog*2:(1-(prog-.5)*2);
+      const t=(now-t0)%T, prog=t/T, tri=prog<.5?prog*2:(1-(prog-.5)*2);
       targetAlt = tri*MAX_ALT;
       demoRAF = requestAnimationFrame(loop);
     })(performance.now());
-    demoFlightBtn.textContent='Dừng mô phỏng'; demoFlightBtn.dataset.running='1';
+    demoFlightBtn.textContent='Dừng mô phỏng độ cao';
+    demoFlightBtn.dataset.running='1';
   }
   function stopDemo(){
     if(demoRAF) cancelAnimationFrame(demoRAF);
     demoRAF=null;
-    demoFlightBtn.textContent='Tự chạy mô phỏng độ cao'; demoFlightBtn.dataset.running='0';
+    demoFlightBtn.textContent='Tự chạy mô phỏng độ cao';
+    demoFlightBtn.dataset.running='0';
   }
-  demoFlightBtn.addEventListener('click', function(){
-    demoFlightBtn.dataset.running==='1'?stopDemo():startDemo();
-  });
-
-  // ===== Reset
-  function resetAll(){
-    stopDemo();
-    stopGPS();
-    targetAlt=0; smoothAlt=0; startAltToday=0;
-    statGain.textContent = '+0 m';
-    updateUIByAlt(0);
-    if(gpsStatus){
-      gpsStatus.textContent = 'GPS: chưa bật – nhấn "Bật GPS thực tế" để dùng vị trí.';
-    }
-  }
-  resetBtn.addEventListener('click', resetAll);
+  demoFlightBtn.addEventListener('click', ()=> demoFlightBtn.dataset.running==='1'?stopDemo():startDemo());
 
   // ===== Theme + Modal
   function setTheme(mode){
     document.body.setAttribute('data-theme', mode==='day'?'day':'night');
-    var isDay = mode==='day';
+    const isDay = mode==='day';
     sun.style.display = isDay?'block':'none';
     moon.style.display = isDay?'none':'block';
     toggleTheme.textContent = isDay ? 'Chế độ: Ngày ☀️' : 'Chế độ: Đêm 🌙';
     toggleTheme.setAttribute('aria-pressed', String(isDay));
   }
-  var theme='night';
-  toggleTheme.addEventListener('click', function(){
+  let theme='night';
+  toggleTheme.addEventListener('click', ()=>{
     theme = theme==='night'?'day':'night';
     setTheme(theme);
   });
-  openModalBtn.addEventListener('click', function(){ modal.classList.add('active'); });
-  closeModalBtn.addEventListener('click', function(){ modal.classList.remove('active'); });
-  window.addEventListener('click', function(e){
-    if(e.target===modal) modal.classList.remove('active');
-  });
+  openModalBtn.addEventListener('click', ()=> modal.classList.add('active'));
+  closeModalBtn.addEventListener('click', ()=> modal.classList.remove('active'));
+  window.addEventListener('click', e=>{ if(e.target===modal) modal.classList.remove('active'); });
 
   // ===== GPS / ĐỘ CAO THỰC TẾ
-  function updateAltFromValue(realAlt){
+  function updateAltFromValue(realAlt) {
     if (typeof realAlt !== 'number' || isNaN(realAlt)) return;
-    var h = Math.max(0, Math.round(realAlt));
+    const h = Math.max(0, Math.round(realAlt));
     targetAlt = h;
     if (startAltToday === 0) startAltToday = h;
+    // để renderLoop lo phần smooth, nhưng cho UI bắt kịp luôn
     updateUIByAlt(h);
   }
 
-  async function fetchElevationFromAPI(lat, lon){
-    try{
-      var res = await fetch('https://api.open-meteo.com/v1/elevation?latitude='+lat+'&longitude='+lon);
-      var data = await res.json();
-      if (data && Array.isArray(data.elevation) && data.elevation.length > 0){
+  async function fetchElevationFromAPI(lat, lon) {
+    try {
+      const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lon}`);
+      const data = await res.json();
+      if (data && Array.isArray(data.elevation) && data.elevation.length > 0) {
         return data.elevation[0];
       }
-    }catch(e){
+    } catch (e) {
       console.warn('Không lấy được độ cao từ API:', e);
     }
     return null;
   }
 
-  async function handleGeoSuccess(pos){
-    var coords = pos.coords;
-    var latitude = coords.latitude;
-    var longitude = coords.longitude;
-    var altitude = coords.altitude;
-    var accuracy = coords.accuracy;
+  // 🔹 HÀM NÀY ĐÃ ĐƯỢC SỬA THEO YÊU CẦU
+  async function handleGeoSuccess(pos) {
+    const { latitude, longitude, altitude } = pos.coords;
 
-    if (gpsStatus){
-      gpsStatus.textContent =
-        'GPS: lat '+latitude.toFixed(5)+', lon '+longitude.toFixed(5)+' · sai số ≈ '+Math.round(accuracy)+' m';
+    // Chỉ hiện một câu duy nhất khi kết nối thành công
+    if (gpsStatus) {
+      gpsStatus.textContent = 'Đã kết nối GPS thành công.';
     }
 
-    if (altitude !== null && !isNaN(altitude)){
+    // Nếu thiết bị có altitude thật
+    if (altitude !== null && !isNaN(altitude)) {
       updateAltFromValue(altitude);
       return;
     }
 
-    var apiAlt = await fetchElevationFromAPI(latitude, longitude);
-    if (apiAlt !== null){
-      if (gpsStatus) gpsStatus.textContent += ' · độ cao ≈ '+Math.round(apiAlt)+' m (bản đồ)';
+    // Nếu không có altitude → dùng API để nội suy, nhưng KHÔNG thêm text nào
+    const apiAlt = await fetchElevationFromAPI(latitude, longitude);
+    if (apiAlt !== null) {
       updateAltFromValue(apiAlt);
-    } else{
-      if (gpsStatus) gpsStatus.textContent += ' · không có dữ liệu độ cao';
     }
   }
 
-  function handleGeoError(err){
+  // 🔹 Lỗi vẫn hiện bình thường (để bạn debug)
+  function handleGeoError(err) {
     if (!gpsStatus) return;
-    if (err.code === 1) gpsStatus.textContent = 'GPS: bị từ chối quyền truy cập. Hãy cho phép định vị trong trình duyệt.';
+    if (err.code === 1) gpsStatus.textContent = 'GPS: bị từ chối quyền truy cập.';
     else if (err.code === 2) gpsStatus.textContent = 'GPS: không xác định được vị trí.';
     else if (err.code === 3) gpsStatus.textContent = 'GPS: hết thời gian chờ.';
     else gpsStatus.textContent = 'GPS: lỗi không xác định.';
   }
 
-  function initGPS(){
+  // 🔹 Khởi động GPS tự động
+  function initGPS() {
     if (!gpsStatus) return;
 
-    if (!('geolocation' in navigator)){
+    if (!('geolocation' in navigator)) {
       gpsStatus.textContent = 'GPS: trình duyệt không hỗ trợ định vị.';
       return;
     }
 
-    gpsStatus.textContent = 'GPS: đang xin quyền vị trí…';
+    gpsStatus.textContent = 'Đang kết nối GPS…';
 
     gpsWatchId = navigator.geolocation.watchPosition(
       handleGeoSuccess,
@@ -529,27 +539,29 @@
     );
   }
 
-  function stopGPS(){
-    if (gpsWatchId !== null && navigator.geolocation && navigator.geolocation.clearWatch){
+  function stopGPS() {
+    if (gpsWatchId !== null && navigator.geolocation && navigator.geolocation.clearWatch) {
       navigator.geolocation.clearWatch(gpsWatchId);
       gpsWatchId = null;
     }
   }
 
+  // ===== Reset
+  resetBtn.addEventListener('click', ()=>{
+    stopDemo();
+    stopGPS();
+    targetAlt=0; smoothAlt=0; startAltToday=0;
+    statGain.textContent = '+0 m';
+    updateUIByAlt(0);
+    if (gpsStatus) gpsStatus.textContent = 'GPS: đã dừng (tải lại trang để kết nối lại).';
+  });
+
   // ===== Init
   statGain.textContent = '+0 m';
   updateUIByAlt(0);
   setTheme('night');
-
-  if (gpsStatus){
-    gpsStatus.textContent = 'GPS: chưa bật – nhấn "Bật GPS thực tế" để dùng vị trí.';
-  }
-
-  if (enableGPSBtn){
-    enableGPSBtn.addEventListener('click', function(){
-      initGPS();
-    });
-  }
+  initGPS();   // tự động bật GPS khi mở trang
 </script>
+
 </body>
 </html>
