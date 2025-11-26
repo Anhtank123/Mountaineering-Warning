@@ -242,6 +242,7 @@
 
       <div class="toolbar" aria-label="Thanh công cụ">
         <button class="btn btn-primary" id="toggleTheme" aria-pressed="false">Chế độ: Đêm 🌙</button>
+        <button class="btn" id="gpsBtn">Kết nối GPS</button>
         <button class="btn" id="demoFlight">Tự chạy mô phỏng độ cao</button>
         <button class="btn btn-ghost" id="reset">Đặt lại</button>
       </div>
@@ -251,7 +252,6 @@
         <article class="card" aria-labelledby="quickTitle">
           <h3 id="quickTitle">MẸO SINH TỒN NHANH</h3>
           <div class="quick">
-            <!-- PILL 1: Leo chậm – nghỉ đều -->
             <div class="pill">
               <div class="ico" aria-hidden="true">🏔️</div>
               <div>
@@ -260,7 +260,6 @@
               </div>
               <div class="stat" id="statGain">+0 m</div>
             </div>
-            <!-- PILL 2: Hydrate -->
             <div class="pill">
               <div class="ico" aria-hidden="true">💧</div>
               <div>
@@ -269,7 +268,6 @@
               </div>
               <div class="chip">H2O</div>
             </div>
-            <!-- PILL 3: Breathwork -->
             <div class="pill">
               <div class="ico" aria-hidden="true">🫁</div>
               <div>
@@ -278,7 +276,6 @@
               </div>
               <div class="chip">Breathwork</div>
             </div>
-            <!-- PILL 4: WX -->
             <div class="pill">
               <div class="ico" aria-hidden="true">🧭</div>
               <div>
@@ -330,8 +327,10 @@
             <div id="status" class="muted" style="font-size:14px;margin-top:6px">
               Áp suất: <strong id="pVal">101.3</strong> kPa · Oxy tương đối: <strong id="oVal">100</strong>% · Nguy cơ: <strong id="riskVal">Thấp</strong>
             </div>
+            <div id="gpsStatus" class="muted" style="margin-top:4px;font-size:13px">
+              GPS: chưa kết nối
+            </div>
 
-            <!-- Stats: Alt | EMPTY | State -->
             <div class="stats" aria-label="Thông số nhanh">
               <div class="kpi"><div class="muted">Độ cao hiện tại</div><div class="v" id="altVal">0 m</div></div>
               <div class="kpi" style="background:transparent;border:none;"></div>
@@ -370,7 +369,6 @@
     </div>
   </div>
 
-  <!-- Modal QR -->
   <div class="modal" id="qrModal" aria-modal="true" role="dialog" aria-label="Hướng dẫn say độ cao">
     <div class="modal-content">
       <span class="close" id="closeModal">×</span>
@@ -385,10 +383,8 @@
   </div>
 
 <script>
-  // ===== Utilities
   const $ = (s,root=document)=>root.querySelector(s);
 
-  // Elements
   const slider = $('#slider'), arrow = $('#arrow');
   const altVal = $('#altVal'), stateVal = $('#stateVal');
   const pVal = $('#pVal'), oVal = $('#oVal'), riskVal = $('#riskVal');
@@ -399,19 +395,18 @@
   const zGreenBar = document.querySelector('.z-green'), zYellowBar = document.querySelector('.z-yellow'), zRedBar = document.querySelector('.z-red');
   const zGreenText = $('#zGreen'), zYellowText = $('#zYellow'), zRedText = $('#zRed');
   const stateBox = $('#stateBox');
+  const gpsBtn = $('#gpsBtn');
+  const gpsStatus = $('#gpsStatus');
 
-  // ===== Model & zones
   const MAX_ALT = 8848;
-  const GREEN_END = 0.28 * MAX_ALT;     // ~2480 m
-  const YELLOW_END = 0.66 * MAX_ALT;    // ~5840 m
+  const GREEN_END = 0.28 * MAX_ALT;
+  const YELLOW_END = 0.66 * MAX_ALT;
   let targetAlt = 0, smoothAlt = 0, isDragging = false, demoRAF = null;
   let startAltToday = 0;
 
-  // FPS cap
   let lastFrame = performance.now();
   const FRAME_INTERVAL = 1000/120;
 
-  // ===== Helpers
   function calcPressure(h){
     const p = 101.325*Math.pow(1-2.25577e-5*h,5.2559);
     return Math.max(30,Math.min(101.3,p)).toFixed(1);
@@ -445,7 +440,6 @@
     }
   }
 
-  // ===== UI update
   let lastZone = 'green';
   function updateUIByAlt(h){
     const percent = h / MAX_ALT;
@@ -473,7 +467,6 @@
     highlightZone(h);
   }
 
-  // ===== Render loop
   function renderLoop(now){
     const dt = now - lastFrame;
     if(dt >= FRAME_INTERVAL){
@@ -485,7 +478,6 @@
   }
   requestAnimationFrame(renderLoop);
 
-  // ===== Slider interactions
   function posToAlt(clientX){
     const rect = slider.getBoundingClientRect();
     let p = (clientX - rect.left)/rect.width;
@@ -518,21 +510,18 @@
     if(e.key==='ArrowLeft')  targetAlt = Math.max(0, targetAlt-step);
   });
 
-  // ===== Demo flight (KHÔNG reset về 0, chạy tiếp từ độ cao hiện tại)
   function startDemo(){
-    stopDemo(); // dừng cái cũ nếu đang chạy
-
-    const startAlt = targetAlt;           // lấy độ cao hiện tại
-    const RANGE = MAX_ALT - startAlt;     // phần còn lại để vươn tới đỉnh
+    stopDemo();
+    const startAlt = targetAlt;
+    const RANGE = MAX_ALT - startAlt;
     const T = 26000;
     const t0 = performance.now();
 
     (function loop(now){
       const t = (now - t0) % T;
       const prog = t / T;
-      const tri = prog < 0.5 ? prog * 2 : (1 - (prog - 0.5) * 2); // 0→1→0
-
-      targetAlt = startAlt + tri * RANGE; // dao động từ startAlt tới MAX_ALT rồi về lại startAlt
+      const tri = prog < 0.5 ? prog * 2 : (1 - (prog - 0.5) * 2);
+      targetAlt = startAlt + tri * RANGE;
       demoRAF = requestAnimationFrame(loop);
     })(performance.now());
 
@@ -550,15 +539,17 @@
     demoFlightBtn.dataset.running==='1' ? stopDemo() : startDemo();
   });
 
-  // ===== Reset
   resetBtn.addEventListener('click', ()=>{
     stopDemo();
     targetAlt=0; smoothAlt=0; startAltToday=0;
     statGain.textContent = '+0 m';
     updateUIByAlt(0);
+    if(gpsStatus){
+      gpsStatus.textContent = 'GPS: chưa kết nối';
+      gpsStatus.style.color = 'var(--muted)';
+    }
   });
 
-  // ===== Theme + Modal
   function setTheme(mode){
     document.body.setAttribute('data-theme', mode==='day'?'day':'night');
     const isDay = mode==='day';
@@ -576,7 +567,86 @@
   closeModalBtn.addEventListener('click', ()=> modal.classList.remove('active'));
   window.addEventListener('click', e=>{ if(e.target===modal) modal.classList.remove('active') });
 
-  // ===== Init
+  // ===== GPS + elevation API =====
+  async function fetchElevation(lat, lon) {
+    try {
+      const url = `https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lon}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const h = data && Array.isArray(data.elevation) ? data.elevation[0] : null;
+      if (typeof h === 'number' && !isNaN(h)) return h;
+      return null;
+    } catch (e) {
+      console.error('Lỗi fetch elevation:', e);
+      return null;
+    }
+  }
+
+  async function initGPS(){
+    if(!gpsStatus) return;
+
+    if(!('geolocation' in navigator)){
+      gpsStatus.textContent = 'Thiết bị không hỗ trợ GPS.';
+      gpsStatus.style.color = '#ffb4b4';
+      return;
+    }
+
+    gpsStatus.textContent = 'Đang xin quyền truy cập GPS…';
+    gpsStatus.style.color = 'var(--muted)';
+
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        gpsStatus.textContent = 'Đã kết nối GPS, đang đọc độ cao thực tế…';
+        gpsStatus.style.color = 'var(--muted)';
+
+        const { latitude, longitude, altitude } = pos.coords;
+
+        let h = await fetchElevation(latitude, longitude);
+
+        if (h == null && altitude != null && !isNaN(altitude)) {
+          h = altitude;
+        }
+
+        if (h == null) {
+          gpsStatus.textContent = 'GPS OK nhưng không lấy được độ cao (thiết bị/API không cung cấp).';
+          gpsStatus.style.color = '#ffb4b4';
+          return;
+        }
+
+        if (h < 0) h = 0;
+        if (h > MAX_ALT) h = MAX_ALT;
+
+        startAltToday = h;          // lấy độ cao hiện tại làm mốc trong ngày
+        targetAlt = h;
+        smoothAlt = h;
+        updateUIByAlt(h);
+
+        gpsStatus.textContent = `GPS: Độ cao khoảng ${Math.round(h)} m (làm mốc trong ngày)`;
+        gpsStatus.style.color = 'var(--safe)';
+      },
+      err => {
+        console.error('GPS error:', err);
+        if (err.code === err.PERMISSION_DENIED) {
+          gpsStatus.textContent = 'Bạn đã từ chối quyền GPS. Hãy cho phép lại trong cài đặt trình duyệt.';
+        } else if (err.code === err.TIMEOUT) {
+          gpsStatus.textContent = 'Không lấy được GPS (hết thời gian chờ).';
+        } else {
+          gpsStatus.textContent = 'Không truy cập được GPS.';
+        }
+        gpsStatus.style.color = '#ffb4b4';
+      },
+      {
+        enableHighAccuracy:true,
+        timeout:10000,
+        maximumAge:0
+      }
+    );
+  }
+
+  gpsBtn.addEventListener('click', initGPS);
+
+  // Init
   statGain.textContent = '+0 m';
   updateUIByAlt(0);
   setTheme('night');
